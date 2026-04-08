@@ -17,8 +17,8 @@ import requests
 
 DEFAULT_FEEDS: tuple[str, ...] = (
     "https://openai.com/news/rss.xml",
-    "https://www.anthropic.com/news/rss.xml",
-    "https://deepmind.google/discover/blog/rss.xml",
+    "https://blog.google/technology/ai/rss/",
+    "http://news.mit.edu/rss/topic/artificial-intelligence2",
     "https://www.theverge.com/rss/ai-artificial-intelligence/index.xml",
     "https://venturebeat.com/category/ai/feed/",
     "https://techcrunch.com/category/artificial-intelligence/feed/",
@@ -139,11 +139,11 @@ def parse_feed(url: str, timeout: int) -> feedparser.FeedParserDict:
 
 def resolve_feeds(args: argparse.Namespace) -> list[str]:
     feeds = list(args.feeds)
-    if args.feeds_file:
-        file_path = pathlib.Path(args.feeds_file)
+    file_candidate = pathlib.Path(args.feeds_file) if args.feeds_file else pathlib.Path("feeds.txt")
+    if file_candidate.exists():
         file_feeds = [
             line.strip()
-            for line in file_path.read_text(encoding="utf-8").splitlines()
+            for line in file_candidate.read_text(encoding="utf-8").splitlines()
             if line.strip() and not line.strip().startswith("#")
         ]
         if file_feeds:

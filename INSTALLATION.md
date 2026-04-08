@@ -26,6 +26,8 @@ pip install -r requirements.txt
 python scripts/news_skill.py --query "openai" --days 3 --limit 10 --format markdown
 ```
 
+`feeds.txt` используется автоматически, если файл существует в корне проекта.
+
 ## 5. Optional: run tests
 ```bash
 pip install -r requirements-dev.txt

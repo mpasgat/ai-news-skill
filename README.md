@@ -26,10 +26,11 @@ pip install -r requirements.txt
 python scripts/news_skill.py --query "agents" --days 3 --limit 10 --format markdown
 ```
 
+По умолчанию скрипт читает источники из `feeds.txt`. Это позволяет быстро заменить проблемные RSS-ссылки без изменения кода.
+
 ## Пример вызова slash-команды
 - Claude Code: `/news agents`
 - OpenCode: `/news agents` (или через аналогичный command file)
 
 ## Что бы улучшил первым
 Первым шагом добавил бы ML-ранжирование и кластеризацию дублей через embeddings, чтобы дайджест показывал не просто keyword-match, а реальные “сигналы” по важности и новизне. Это даст меньше шума и больше value при большом объеме источников.
-

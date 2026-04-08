@@ -1,0 +1,7 @@
+# One feed URL per line. The script will use this file automatically.
+https://openai.com/news/rss.xml
+https://blog.google/technology/ai/rss/
+http://news.mit.edu/rss/topic/artificial-intelligence2
+https://www.theverge.com/rss/ai-artificial-intelligence/index.xml
+https://venturebeat.com/category/ai/feed/
+https://techcrunch.com/category/artificial-intelligence/feed/

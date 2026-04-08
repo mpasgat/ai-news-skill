@@ -1,41 +1,53 @@
 # AI News Skill for Claude Code / OpenCode
 
-Рабочий skill, который собирает AI-новости из нескольких источников, фильтрует по релевантности и отдает компактный digest прямо в контекст агента.
+A production-ready skill that collects AI news from multiple RSS/Atom sources, filters by relevance, and returns a ranked digest directly into the agent context.
 
-## Для кого и зачем
-Этот проект для команд и individual-разработчиков, которым нужно быстро получать свежие AI-обновления без ручного обхода десятков сайтов.  
-Skill полезен backend-инженеру, продукту и аналитике: он сразу выдает ссылки, краткий контекст и приоритетные новости по теме.  
-Подход снижает время на ресерч и помогает принимать решения на основе актуальной повестки AI-рынка.  
-В формате slash-команды (`/news`) это удобно встроить в ежедневный workflow в Claude Code или OpenCode.
+## For whom and why
+This project is for developers, product teams, and analysts who need fresh AI updates without manual browsing.  
+It is especially useful for backend engineers who want quick, link-backed signals about LLM tools, agent frameworks, and industry launches.  
+The skill reduces research time by automatically filtering noise and keeping only relevant items.  
+With `/news` command integration, it fits directly into daily workflows in Claude Code and OpenCode.
 
-## Что внутри репозитория
-- `SKILL.md` — описание skill и как его использовать агенту.
-- `scripts/news_skill.py` — Python-парсер + фильтрация + ранжирование + форматирование результата.
-- `.claude/commands/news.md` — slash-команда `/news` для Claude Code.
-- `.opencode/commands/news.md` — аналогичная команда для OpenCode.
-- `INSTALLATION.md` — пошаговый запуск.
-- `DEMO_LOG.md` — пример работы skill внутри агентного сценария.
-- `tests/` + `.github/workflows/tests.yml` — автопроверка.
+## Repository contents
+- `SKILL.md` - skill definition and usage behavior.
+- `scripts/news_skill.py` - parser, filtering, ranking, formatting, and resilience logic.
+- `feeds.txt` - editable list of news sources (no code changes needed).
+- `.claude/commands/news.md` - slash command for Claude Code.
+- `.opencode/commands/news.md` - command equivalent for OpenCode.
+- `INSTALLATION.md` - setup and run instructions.
+- `DEMO_LOG.md` - sample run and output.
+- `tests/` + `.github/workflows/tests.yml` - automated validation in CI.
 
-## Быстрый старт
+## Quick start
 ```bash
-python -m venv .venv
+python -m venv venv
 # Windows PowerShell
-. .venv/Scripts/Activate.ps1
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 python scripts/news_skill.py --query "agents" --days 3 --limit 10 --format markdown
 ```
 
-По умолчанию скрипт читает источники из `feeds.txt`. Это позволяет быстро заменить проблемные RSS-ссылки без изменения кода.
+## Key behavior
+- Auto-loads source list from `feeds.txt`.
+- Uses retries for transient HTTP failures.
+- Shows source health in output: `Sources: X ok, Y failed`.
+- Supports strict automation mode with `--fail-on-empty`.
 
-Дополнительно:
-- Есть автоматический retry для временных HTTP-сбоев.
-- В digest показывается health источников (`N ok, M failed`).
-- Для автоматизаций можно включить `--fail-on-empty`, чтобы команда возвращала non-zero код при пустом результате.
+Example:
+```bash
+python scripts/news_skill.py --query "openai" --days 3 --limit 10 --format markdown --fail-on-empty
+```
 
-## Пример вызова slash-команды
+## Slash command usage
 - Claude Code: `/news agents`
-- OpenCode: `/news agents` (или через аналогичный command file)
+- OpenCode: `/news agents`
 
-## Что бы улучшил первым
-Первым шагом добавил бы ML-ранжирование и кластеризацию дублей через embeddings, чтобы дайджест показывал не просто keyword-match, а реальные “сигналы” по важности и новизне. Это даст меньше шума и больше value при большом объеме источников.
+## Troubleshooting
+- If you see warnings like `feed failed`, the script still continues with healthy sources.
+- If all feeds fail, check local firewall/proxy/network rules first.
+- If results are too broad, narrow with `--query`.
+- If results are empty in automation, use wider `--days` or remove strict `--query`.
+
+## What I would improve first
+First, I would add embedding-based clustering and ranking so the digest prioritizes novelty and impact, not only keyword frequency. That would reduce near-duplicates and improve signal quality at scale.
+

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Demo AI Feed</title>
+    <link>https://example.com</link>
+    <description>Demo feed for AI news skill</description>
+    <item>
+      <title>OpenAI launches new agent tooling for enterprises</title>
+      <link>https://example.com/openai-agent-enterprise</link>
+      <pubDate>Mon, 07 Apr 2026 08:00:00 GMT</pubDate>
+      <description>New enterprise APIs for agent orchestration, RAG, and token optimization.</description>
+    </item>
+    <item>
+      <title>Anthropic updates Claude with multimodal reasoning improvements</title>
+      <link>https://example.com/anthropic-multimodal-update</link>
+      <pubDate>Mon, 07 Apr 2026 12:00:00 GMT</pubDate>
+      <description>Claude receives stronger multimodal performance and lower inference latency.</description>
+    </item>
+    <item>
+      <title>Sports league AI bot helps game highlights</title>
+      <link>https://example.com/sports-ai-bot</link>
+      <pubDate>Mon, 07 Apr 2026 14:00:00 GMT</pubDate>
+      <description>An AI bot for sports game highlights and social clips.</description>
+    </item>
+  </channel>
+</rss>
+

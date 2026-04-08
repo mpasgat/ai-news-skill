@@ -14,6 +14,11 @@ def test_score_item_negative_keyword():
     assert value < 0
 
 
+def test_score_item_no_false_positive_for_paid():
+    value = score_item("Paid subscription model updates this quarter")
+    assert value <= 0
+
+
 def test_collect_items_from_local_feed():
     feed_path = Path("tests/fixtures/demo-feed.xml").resolve()
     feeds = [f"file://{feed_path.as_posix()}"]
@@ -39,4 +44,3 @@ def test_markdown_output_has_header():
     output = as_markdown(items, query="openai", days=7, limit=3)
     assert "# AI News Digest" in output
     assert "Quick Insight" in output
-

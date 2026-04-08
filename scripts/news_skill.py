@@ -10,7 +10,7 @@ import pathlib
 import re
 import sys
 from dataclasses import dataclass
-from typing import Iterable, List, Sequence
+from typing import Iterable, Sequence
 
 import feedparser
 import requests
@@ -117,6 +117,12 @@ def score_item(text: str) -> int:
         return -100
     score = 0
     for keyword in AI_KEYWORDS:
+        if keyword in {"ai", "llm", "gpt", "rag"}:
+            # Use word boundaries for short terms to avoid false positives
+            pattern = rf"\b{re.escape(keyword)}\b"
+            if re.search(pattern, lowered):
+                score += 2
+            continue
         if keyword in lowered:
             score += 2
     return score

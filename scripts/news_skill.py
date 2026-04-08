@@ -14,6 +14,8 @@ from typing import Iterable, Sequence
 
 import feedparser
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 DEFAULT_FEEDS: tuple[str, ...] = (
     "https://openai.com/news/rss.xml",
@@ -62,6 +64,13 @@ class NewsItem:
     score: int
 
 
+@dataclass(slots=True)
+class FeedRunResult:
+    items: list[NewsItem]
+    successful_feeds: list[str]
+    failed_feeds: list[str]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Collect and filter AI news.")
     parser.add_argument("--query", default="", help="Optional text filter.")
@@ -89,6 +98,11 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=12,
         help="HTTP timeout in seconds per feed.",
+    )
+    parser.add_argument(
+        "--fail-on-empty",
+        action="store_true",
+        help="Return non-zero code when no items are found.",
     )
     return parser.parse_args()
 
@@ -128,13 +142,44 @@ def score_item(text: str) -> int:
     return score
 
 
-def parse_feed(url: str, timeout: int) -> feedparser.FeedParserDict:
+def requests_session() -> requests.Session:
+    retry = Retry(
+        total=2,
+        connect=2,
+        read=2,
+        backoff_factor=0.4,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=("GET",),
+    )
+    adapter = HTTPAdapter(max_retries=retry)
+    session = requests.Session()
+    session.mount("http://", adapter)
+    session.mount("https://", adapter)
+    return session
+
+
+def feed_variants(url: str) -> tuple[str, ...]:
+    if url.startswith("file://"):
+        return (url,)
+    trimmed = url.rstrip("/")
+    return (trimmed, f"{trimmed}/")
+
+
+def parse_feed(url: str, timeout: int, session: requests.Session) -> feedparser.FeedParserDict:
     if url.startswith("file://"):
         local_path = pathlib.Path(url[7:])
         return feedparser.parse(local_path.read_bytes())
-    response = requests.get(url, timeout=timeout, headers={"User-Agent": USER_AGENT})
-    response.raise_for_status()
-    return feedparser.parse(response.content)
+    last_error: Exception | None = None
+    for variant in feed_variants(url):
+        try:
+            response = session.get(variant, timeout=timeout, headers={"User-Agent": USER_AGENT})
+            response.raise_for_status()
+            return feedparser.parse(response.content)
+        except Exception as exc:  # noqa: BLE001
+            last_error = exc
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("No feed variant to parse.")
 
 
 def resolve_feeds(args: argparse.Namespace) -> list[str]:
@@ -152,16 +197,25 @@ def resolve_feeds(args: argparse.Namespace) -> list[str]:
 
 
 def collect_items(feeds: Sequence[str], days: int, query: str, timeout: int) -> list[NewsItem]:
+    return collect_with_health(feeds=feeds, days=days, query=query, timeout=timeout).items
+
+
+def collect_with_health(feeds: Sequence[str], days: int, query: str, timeout: int) -> FeedRunResult:
     items: list[NewsItem] = []
+    successful_feeds: list[str] = []
+    failed_feeds: list[str] = []
     seen: set[str] = set()
     min_date = dt.datetime.now(tz=dt.timezone.utc) - dt.timedelta(days=days)
     query_lower = query.lower().strip()
+    session = requests_session()
 
     for feed_url in feeds:
         try:
-            parsed = parse_feed(feed_url, timeout=timeout)
+            parsed = parse_feed(feed_url, timeout=timeout, session=session)
+            successful_feeds.append(feed_url)
         except Exception as exc:  # noqa: BLE001
             print(f"[warn] feed failed: {feed_url} ({exc})", file=sys.stderr)
+            failed_feeds.append(feed_url)
             continue
 
         source_title = clean_text(parsed.feed.get("title", feed_url))
@@ -201,14 +255,24 @@ def collect_items(feeds: Sequence[str], days: int, query: str, timeout: int) -> 
             )
 
     items.sort(key=lambda x: (x.score, x.published), reverse=True)
-    return items
+    return FeedRunResult(items=items, successful_feeds=successful_feeds, failed_feeds=failed_feeds)
 
 
-def as_markdown(items: Iterable[NewsItem], query: str, days: int, limit: int) -> str:
+def as_markdown(
+    items: Iterable[NewsItem],
+    query: str,
+    days: int,
+    limit: int,
+    successful_feeds: Sequence[str] | None = None,
+    failed_feeds: Sequence[str] | None = None,
+) -> str:
     now = dt.datetime.now(tz=dt.timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    ok_count = len(successful_feeds or [])
+    fail_count = len(failed_feeds or [])
     header = [
         "# AI News Digest",
         f"_Generated: {now}; window: last {days} days; query: `{query or 'any'}`_",
+        f"_Sources: {ok_count} ok, {fail_count} failed_",
         "",
     ]
 
@@ -240,12 +304,13 @@ def as_markdown(items: Iterable[NewsItem], query: str, days: int, limit: int) ->
 
 def main() -> int:
     args = parse_args()
-    items = collect_items(
+    run_result = collect_with_health(
         feeds=resolve_feeds(args),
         days=max(1, args.days),
         query=args.query,
         timeout=max(3, args.timeout),
     )
+    items = run_result.items
 
     if args.format == "json":
         payload = [
@@ -260,10 +325,19 @@ def main() -> int:
             for i in items[: args.limit]
         ]
         print(json.dumps(payload, ensure_ascii=False, indent=2))
-        return 0
+        return 2 if args.fail_on_empty and not payload else 0
 
-    print(as_markdown(items=items, query=args.query, days=args.days, limit=args.limit))
-    return 0
+    print(
+        as_markdown(
+            items=items,
+            query=args.query,
+            days=args.days,
+            limit=args.limit,
+            successful_feeds=run_result.successful_feeds,
+            failed_feeds=run_result.failed_feeds,
+        )
+    )
+    return 2 if args.fail_on_empty and not items else 0
 
 
 if __name__ == "__main__":

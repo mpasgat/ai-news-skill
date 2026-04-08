@@ -1,7 +1,7 @@
 import argparse
 from pathlib import Path
 
-from scripts.news_skill import as_markdown, collect_items, resolve_feeds, score_item
+from scripts.news_skill import as_markdown, collect_items, collect_with_health, resolve_feeds, score_item
 
 
 def test_score_item_positive():
@@ -44,3 +44,18 @@ def test_markdown_output_has_header():
     output = as_markdown(items, query="openai", days=7, limit=3)
     assert "# AI News Digest" in output
     assert "Quick Insight" in output
+
+
+def test_markdown_output_has_source_health():
+    feed_path = Path("tests/fixtures/demo-feed.xml").resolve()
+    feeds = [f"file://{feed_path.as_posix()}"]
+    result = collect_with_health(feeds=feeds, days=30, query="", timeout=3)
+    output = as_markdown(
+        result.items,
+        query="",
+        days=7,
+        limit=3,
+        successful_feeds=result.successful_feeds,
+        failed_feeds=result.failed_feeds,
+    )
+    assert "Sources: 1 ok, 0 failed" in output

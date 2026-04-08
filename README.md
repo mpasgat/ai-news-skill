@@ -28,6 +28,11 @@ python scripts/news_skill.py --query "agents" --days 3 --limit 10 --format markd
 
 По умолчанию скрипт читает источники из `feeds.txt`. Это позволяет быстро заменить проблемные RSS-ссылки без изменения кода.
 
+Дополнительно:
+- Есть автоматический retry для временных HTTP-сбоев.
+- В digest показывается health источников (`N ok, M failed`).
+- Для автоматизаций можно включить `--fail-on-empty`, чтобы команда возвращала non-zero код при пустом результате.
+
 ## Пример вызова slash-команды
 - Claude Code: `/news agents`
 - OpenCode: `/news agents` (или через аналогичный command file)

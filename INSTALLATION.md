@@ -28,6 +28,11 @@ python scripts/news_skill.py --query "openai" --days 3 --limit 10 --format markd
 
 `feeds.txt` используется автоматически, если файл существует в корне проекта.
 
+Для CI/cron сценариев (считать пустой результат ошибкой):
+```bash
+python scripts/news_skill.py --query "openai" --days 3 --limit 10 --format markdown --fail-on-empty
+```
+
 ## 5. Optional: run tests
 ```bash
 pip install -r requirements-dev.txt
